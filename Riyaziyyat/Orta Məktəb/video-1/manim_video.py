@@ -51,7 +51,7 @@ class EndingWith5Square(Scene):
         Show '35^2 = ?' then reveal '3 × (3+1)'.
         Returns the 3, ×, and (3+1) mobjects (the last will later be morphed to 4).
         """
-        ex1 = MathTex("35^2", "=", "? ", font_size=EQ_SIZE).scale(EQ_SCALE)
+        ex1 = MathTex("35^2", "=", "?"," ", font_size=EQ_SIZE).scale(EQ_SCALE)
         three = MathTex("3", font_size=EQ_SIZE).scale(EQ_SCALE-1)
         three.next_to(ex1, LEFT, buff=BUFF_S)
 
@@ -64,7 +64,7 @@ class EndingWith5Square(Scene):
         ex1_copy = ex1[0].copy()
         # Give space on the right for × and (3+1)
         # self.play(three.animate.shift(LEFT * 4.0))
-        self.play(Circumscribe(ex1[0]))
+        self.play(Circumscribe(ex1[0][0]))
         self.play(Transform(ex1_copy[0], three))
 
         times    = MathTex(r"\times", font_size=EQ_SIZE).scale(EQ_SCALE-1).next_to(three, RIGHT, buff=BUFF_S)
@@ -106,15 +106,17 @@ class EndingWith5Square(Scene):
         ex1_copy_copy = ex1_copy.copy()
 
         five = MathTex("5^2", font_size=EQ_SIZE).scale(EQ_SCALE-1)
-        five.next_to(three_t, DOWN, buff=BUFF_M)
+        five.next_to(four_target, DOWN, buff=BUFF_M)
 
-        self.play(Transform(ex1_copy_copy[0][1:3], five))
+        self.play(Transform(ex1_copy_copy[1:3], five))
 
-        equals_twelve = MathTex("=", "25", font_size=EQ_SIZE).scale(EQ_SCALE - 1).next_to(times, RIGHT, buff=BUFF_S)
-        equals_twelve.next_to(five, RIGHT, buff=BUFF_S)
+        equals_twenty_five = MathTex("=", "25", font_size=EQ_SIZE).scale(EQ_SCALE - 1).next_to(times, RIGHT, buff=BUFF_S)
+        equals_twenty_five.next_to(five, RIGHT, buff=BUFF_S)
+
+        self.play(Write(equals_twenty_five))
 
         self.play(Transform(equals_twelve.copy()[1], ex1[2][0]))
-        self.play(Transform(equals_twelve.copy()[1], ex1[2][1]))
+        # self.play(Transform(equals_twenty_five.copy()[1], ex1[3][0]))
 
 
 
@@ -141,30 +143,6 @@ class EndingWith5Square(Scene):
         return eq12
 
 
-
-    # ---------- Assemble: 35^2 = 1225 ----------
-    # def assemble_final(self, expr, eq12, five25):
-    #     """
-    #     Pull '12' (from '= 12') and '25' (from '5^2 = 25') into the center,
-    #     write '35^2 =', and form '1225'.
-    #     """
-    #     # Build final layout as three separate pieces so '12' and '25' sit tight
-    #     lhs     = MathTex("35^2", "=", font_size=EQ_SIZE).scale(EQ_SCALE)
-    #     res12   = MathTex("12",    font_size=EQ_SIZE).scale(EQ_SCALE)
-    #     res25   = MathTex("25",    font_size=EQ_SIZE).scale(EQ_SCALE)
-    #     final   = VGroup(lhs, res12, res25).arrange(RIGHT, buff=0.12).move_to(ORIGIN)
-    #
-    #     # Animate: write '35^2 =' while pulling numbers in from their sources
-    #     self.play(
-    #         Write(lhs),
-    #         ReplacementTransform(eq12[1].copy(), res12),   # take the '12'
-    #         ReplacementTransform(five25[2].copy(), res25), # take the '25'
-    #         run_time=0.9
-    #     )
-    #
-    #     # Tidy up: fade out the helpers (3×4 on the left, full '=12', and '5^2=25' at bottom)
-    #     self.play(FadeOut(VGroup(expr, eq12, five25)), run_time=0.6)
-    #     self.wait(0.4)
 
     # ---------- Orchestration ----------
     def construct(self):
