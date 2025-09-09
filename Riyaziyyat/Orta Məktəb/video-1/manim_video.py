@@ -51,7 +51,7 @@ class EndingWith5Square(Scene):
         Show '35^2 = ?' then reveal '3 × (3+1)'.
         Returns the 3, ×, and (3+1) mobjects (the last will later be morphed to 4).
         """
-        ex1 = MathTex("35^2", "=", "?"," ", font_size=EQ_SIZE).scale(EQ_SCALE)
+        ex1 = MathTex("35^2", "= ", "?", font_size=EQ_SIZE).scale(EQ_SCALE-1)
         three = MathTex("3", font_size=EQ_SIZE).scale(EQ_SCALE-1)
         three.next_to(ex1, LEFT, buff=BUFF_S)
 
@@ -59,7 +59,7 @@ class EndingWith5Square(Scene):
         self.add(ex1)
         self.play(ShowPassingFlash(Underline(ex1)), run_time=0.5)
         # self.play(FadeOut(ex1, shift=UP*1.5), FadeIn(three, shift=UP*1.5))
-        self.play(ex1.animate.move_to(UP* 4.0))
+        self.play(ex1.animate.move_to(UL* 4.0))
 
         ex1_copy = ex1[0].copy()
         # Give space on the right for × and (3+1)
@@ -112,10 +112,20 @@ class EndingWith5Square(Scene):
 
         equals_twenty_five = MathTex("=", "25", font_size=EQ_SIZE).scale(EQ_SCALE - 1).next_to(times, RIGHT, buff=BUFF_S)
         equals_twenty_five.next_to(five, RIGHT, buff=BUFF_S)
+        twenty_five = equals_twenty_five[1]
 
         self.play(Write(equals_twenty_five))
 
-        self.play(Transform(equals_twelve.copy()[1], ex1[2][0]))
+
+        twelve = equals_twelve[1]
+
+        # self.add(twelve)
+
+        self.play(
+            twelve.copy().animate.move_to(ex1[2][0]).shift(RIGHT*0.5),
+            FadeOut(ex1[2][0]),
+            twenty_five.copy().animate.move_to(ex1[2][0]).shift(RIGHT*2)
+        )
         # self.play(Transform(equals_twenty_five.copy()[1], ex1[3][0]))
 
 
