@@ -1,1 +1,37 @@
 .DS_Store
+
+# Virtual environments
+tehsil-digital-content/
+venv/
+env/
+
+# Media files (videos, images, etc.)
+**/media/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
