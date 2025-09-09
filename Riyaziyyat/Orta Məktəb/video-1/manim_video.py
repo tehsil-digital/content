@@ -1,5 +1,4 @@
 from manim import *
-from pyglet.extlibs.earcut import equals
 
 # ---- Render config (9:16 mobile) ----
 config.pixel_height = 1920
@@ -8,154 +7,176 @@ config.frame_rate   = 30
 config.background_color = BLACK
 
 
-# ---- Constants ----
+# ---- Constants / styling ----
 SAFE       = 0.5
 EQ_SIZE    = 72
 EQ_SCALE   = 3
 BUFF_S     = 0.5
 BUFF_M     = 1.2
 
+# ---- Small helpers -----------------------------------------------------------
+def T(text: str, size=36, color=WHITE, font=None) -> Text:
+    """Consistent Text factory."""
+    return Text(text, font_size=size, color=color, font=font) if font else Text(text, font_size=size, color=color)
+
+def M(*parts: str) -> MathTex:
+    """Consistent MathTex factory with scene-wide scaling."""
+    return MathTex(*parts, font_size=EQ_SIZE).scale(EQ_SCALE - 1)
+
+def keep_bottom_semitransparent(mobj: Mobject, edge_buff=-3, opacity=0.6, run_time=0.6):
+    """Animate an object to live at bottom with given opacity."""
+    return AnimationGroup(
+        mobj.animate.to_edge(DOWN, buff=edge_buff),
+        mobj.animate.set_opacity(opacity),
+        lag_ratio=0.0, run_time=run_time
+    )
+
+def circumscribe_and_flash(mobj: Mobject, run_time=0.5):
+    """Quick emphasize helper."""
+    return ShowPassingFlash(Underline(mobj), run_time=run_time)
+
+def transform_into(existing: Mobject, target_like: Mobject, run_time=0.6):
+    """
+    Morph existing into a copy of target_like (only using the target's geometry & position).
+    Useful for precise landing positions.
+    """
+    target = target_like.copy()
+    target.set_opacity(1.0)
+    return Transform(existing, target, run_time=run_time)
+
+# ---- Layout builders ---------------------------------------------------------
+def build_intro_group():
+    """
+    Title / subtitle / website (unanimated, positioned).
+    Returns (title, subtitle, website).
+    """
+    title    = T("Sonu 5-lə bitən ədədlərin kvadratı", size=56, color=WHITE)
+    subtitle = T("1 dəqiqədə sürətli qayda",         size=36, color=BLUE_B)
+    website  = T("www.tehsil.digital",                size=44, color=WHITE, font="Arial")
+
+    title.to_edge(UP, buff=SAFE)
+    subtitle.next_to(title, DOWN, buff=1)
+    website.next_to(subtitle, DOWN, buff=4)
+    return title, subtitle, website
+
+def build_hook_equations():
+    """
+    Build initial equation and pieces for the hook.
+    Returns:
+        ex1           : MathTex "35^2 = ?"
+        three         : MathTex "3"
+        times         : MathTex "\times"
+        add_expr      : MathTex "(3+1)"
+        four_target   : MathTex "4" (prepositioned to the right of times)
+    """
+    ex1 = M("35^2", "=", "?")
+    three = M("3")
+    three.next_to(ex1, LEFT, buff=BUFF_S)
+
+    times    = M(r"\times")
+    add_expr = M("(3+1)")
+
+    times.next_to(three, RIGHT, buff=BUFF_S)
+    add_expr.next_to(times, RIGHT, buff=BUFF_S)
+
+    # prepare the target '4' at the same location as add_expr
+    four_target = M("4")
+    four_target.next_to(times, RIGHT, buff=BUFF_S)
+
+    return ex1, three, times, add_expr, four_target
+
+def build_equals_block(left_obj: Mobject, value: str):
+    """
+    Build '= value' aligned to the right of left_obj.
+    Returns (equals_group, value_mobj)
+    """
+    eq_group = M("=", value)
+    eq_group.next_to(left_obj, RIGHT, buff=BUFF_S)
+    return eq_group, eq_group[1]
+
+# ---- Scene -------------------------------------------------------------------
 class EndingWith5Square(Scene):
     # ---------- Intro (title / subtitle / website) ----------
-    def show_intro(self):
-        """
-        Shows title/subtitle, parks the website at the bottom with low opacity.
-        """
-        title    = Text("Sonu 5-lə bitən ədədlərin kvadratı", font_size=56, color=WHITE)
-        subtitle = Text("1 dəqiqədə sürətli qayda", font_size=36, color=BLUE_B)
-        website  = Text("www.tehsil.digital", font_size=44, color=WHITE, font="Arial")
+    def show_intro(self) -> Text:
+        title, subtitle, website = build_intro_group()
 
-        # layout and positioning
-        title.to_edge(UP, buff=SAFE)
-        subtitle.next_to(title, DOWN, buff=1)
-        website.next_to(subtitle, DOWN, buff=4)
-
-        # animate
+        # animate in
         self.play(Write(title), run_time=0.5)
         self.play(FadeIn(subtitle, shift=UP), run_time=0.6)
-        self.play(FadeIn(website,  shift=UP), run_time=0.5)
+        self.play(FadeIn(website, shift=UP), run_time=0.5)
         self.wait(0.2)
 
-        # Keep website visible at the very bottom (semi-transparent)
+        # 1) move website to bottom while fading out title/subtitle
         self.play(
             website.animate.to_edge(DOWN, buff=-3),
             FadeOut(VGroup(title, subtitle)),
             run_time=0.6,
         )
+        # 2) then reduce its opacity
         self.play(website.animate.set_opacity(0.6))
+
         return website
 
-    # ---------- Hook: 35^2 -> 3 × (3+1) ----------
+    # ---------- Hook: 35^2 -> 3 × (3+1) -> 3 × 4 -> = 12 & 5^2 = 25 ----------
     def show_hook(self):
         """
-        Show '35^2 = ?' then reveal '3 × (3+1)'.
-        Returns the 3, ×, and (3+1) mobjects (the last will later be morphed to 4).
+        Show '35^2 = ?' -> morph to '3 × (3+1)' -> morph to '3 × 4' -> show '= 12'
+        Then show '5^2 = 25', and copy '12' and '25' into the '?' placeholders.
         """
-        ex1 = MathTex("35^2", "= ", "?", font_size=EQ_SIZE).scale(EQ_SCALE-1)
-        three = MathTex("3", font_size=EQ_SIZE).scale(EQ_SCALE-1)
-        three.next_to(ex1, LEFT, buff=BUFF_S)
+        ex1, three, times, add_expr, four_target = build_hook_equations()
 
-
+        # place ex1 and move to UL
         self.add(ex1)
-        self.play(ShowPassingFlash(Underline(ex1)), run_time=0.5)
-        # self.play(FadeOut(ex1, shift=UP*1.5), FadeIn(three, shift=UP*1.5))
-        self.play(ex1.animate.move_to(UL* 4.0))
+        self.play(circumscribe_and_flash(ex1), run_time=0.5)
+        self.play(ex1.animate.move_to(UL * 4.0))
 
-        ex1_copy = ex1[0].copy()
-        # Give space on the right for × and (3+1)
-        # self.play(three.animate.shift(LEFT * 4.0))
-        self.play(Circumscribe(ex1[0][0]))
-        self.play(Transform(ex1_copy[0], three))
+        # Highlight '35' and transform (copy) its leading '3' into a standalone '3'
+        ex1_copy = ex1[0].copy()  # "35^2" slice
+        self.play(Circumscribe(ex1[0][0]))  # highlight just the '3'
+        self.play(Transform(ex1_copy[0], three))  # morph copy's '3' into our 'three'
 
-        times    = MathTex(r"\times", font_size=EQ_SIZE).scale(EQ_SCALE-1).next_to(three, RIGHT, buff=BUFF_S)
-        add_expr = MathTex("(3+1)",   font_size=EQ_SIZE).scale(EQ_SCALE-1).next_to(times, RIGHT, buff=BUFF_S)
-
+        # Write '×' and '(3+1)'
         self.play(Write(times))
         self.play(Write(add_expr))
 
-        """
-        Morph '(3+1)' -> '4' and center the whole '3 × 4' expression.
-        Returns the live group containing [3, ×, 4].
-        """
-
-        # Create the target '4' (same scale as the rest)
-        four_target = MathTex("4", font_size=EQ_SIZE).scale(EQ_SCALE - 1).next_to(times, RIGHT, buff=BUFF_S)
-
-        # Build a centered *target layout* using OFF-SCENE copies.
-        # These copies are NOT added to the scene; they only define the final positions.
+        # Prepare centered targets (copies) for consistent landing positions
         three_t = three.copy()
         times_t = times.copy()
 
-        # Animate:
-        #  - move the existing '3' and '×' into their target positions
-        #  - morph '(3+1)' into the pre-positioned '4' (so '4' lands centered)
+        # Morph (3+1) -> 4 while ensuring '3 × 4' stays centered relative to the earlier layout
         self.play(
             three.animate.move_to(three_t.get_center()),
             times.animate.move_to(times_t.get_center()),
-            Transform(add_expr, four_target),
+            Transform(add_expr, four_target),  # morph "(3+1)" into "4" at its target position
             run_time=0.8
         )
 
-        equals_twelve = MathTex("=","12", font_size=EQ_SIZE).scale(EQ_SCALE - 1).next_to(times, RIGHT, buff=BUFF_S)
-        equals_twelve.next_to(four_target, RIGHT, buff=BUFF_S)
+        # '= 12' next to the freshly formed '4'
+        eq12, twelve = build_equals_block(four_target, "12")
+        self.play(Write(eq12))
 
-        self.play(Write(equals_twelve))
+        # Emphasize '= ?' portion of the original equation
+        self.play(Circumscribe(ex1[0][1:3]))  # "=" and "?" inside "35^2 = ?"
 
-        self.play(Circumscribe(ex1[0][1:3]))
+        # Show 5^2 under the '4' (downwards)
+        ex1_copy_copy = ex1_copy.copy()  # reuse for transforming "5^2"
+        five_sq = M("5^2")
+        five_sq.next_to(four_target, DOWN, buff=BUFF_M)
+        self.play(Transform(ex1_copy_copy[1:3], five_sq))  # morph "^2" part into "5^2"
 
-        ex1_copy_copy = ex1_copy.copy()
+        # '= 25' next to '5^2'
+        eq25, twenty_five = build_equals_block(five_sq, "25")
+        self.play(Write(eq25))
 
-        five = MathTex("5^2", font_size=EQ_SIZE).scale(EQ_SCALE-1)
-        five.next_to(four_target, DOWN, buff=BUFF_M)
-
-        self.play(Transform(ex1_copy_copy[1:3], five))
-
-        equals_twenty_five = MathTex("=", "25", font_size=EQ_SIZE).scale(EQ_SCALE - 1).next_to(times, RIGHT, buff=BUFF_S)
-        equals_twenty_five.next_to(five, RIGHT, buff=BUFF_S)
-        twenty_five = equals_twenty_five[1]
-
-        self.play(Write(equals_twenty_five))
-
-
-        twelve = equals_twelve[1]
-
-        # self.add(twelve)
-
+        # Finally, copy '12' and '25' into the '?' slot (staggered to the right)
+        question_mark = ex1[2][0]
         self.play(
-            twelve.copy().animate.move_to(ex1[2][0]).shift(RIGHT*0.5),
-            FadeOut(ex1[2][0]),
-            twenty_five.copy().animate.move_to(ex1[2][0]).shift(RIGHT*2)
+            twelve.copy().animate.move_to(question_mark).shift(RIGHT * 0.5),
+            FadeOut(question_mark),
+            twenty_five.copy().animate.move_to(ex1[2][0]).shift(RIGHT * 2),
         )
-        # self.play(Transform(equals_twenty_five.copy()[1], ex1[3][0]))
-
-
-
-
-
-
-    # ---------- Move '3 × 4' left and show '= 12' to its right ----------
-    def move_expr_left_and_show_eq12(self, expr):
-        """
-        Moves the '3 × 4' group to the left edge and simultaneously writes '= 12' on the right.
-        Returns the MathTex for '= 12'.
-        """
-        # Precompute target position to place '= 12' relative to it on the same frame
-        expr_target = expr.copy().to_edge(LEFT, buff=1.3)
-        eq12 = MathTex("=", "12", font_size=EQ_SIZE).scale(EQ_SCALE)
-        eq12.next_to(expr_target, RIGHT, buff=BUFF_M)
-
-        # Move expression and write '= 12' together
-        self.play(
-            expr.animate.move_to(expr_target),
-            Write(eq12),
-            run_time=0.7
-        )
-        return eq12
-
-
 
     # ---------- Orchestration ----------
     def construct(self):
         self.show_intro()
         self.show_hook()
-
